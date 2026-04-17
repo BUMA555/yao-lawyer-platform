@@ -1,0 +1,36 @@
+{
+  "name": "yao-lawyer-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:weapp": "taro build --type weapp --watch",
+    "dev:tt": "taro build --type tt --watch",
+    "dev:h5": "taro build --type h5 --watch",
+    "build:weapp": "taro build --type weapp",
+    "build:tt": "taro build --type tt",
+    "build:h5": "taro build --type h5"
+  },
+  "dependencies": {
+    "@tarojs/components": "^4.0.7",
+    "@tarojs/plugin-framework-react": "^4.2.0",
+    "@tarojs/plugin-platform-h5": "^4.0.7",
+    "@tarojs/plugin-platform-tt": "^4.0.7",
+    "@tarojs/plugin-platform-weapp": "^4.0.7",
+    "@tarojs/react": "^4.0.7",
+    "@tarojs/runtime": "^4.0.7",
+    "@tarojs/taro": "^4.0.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-react": "^7.28.5",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
+    "@tarojs/cli": "^4.2.0",
+    "@tarojs/webpack5-runner": "^4.2.0",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "babel-preset-taro": "^4.2.0",
+    "typescript": "^5.7.3"
+  }
+}
