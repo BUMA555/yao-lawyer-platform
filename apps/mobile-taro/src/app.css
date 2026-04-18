@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+/* Keep typography local/system to match mini-program rendering expectations. */
 
 :root {
   --paper: #f6f3ed;
@@ -1614,5 +1614,266 @@ body,
   .action-button,
   .scenario-card {
     transition: none;
+  }
+}
+
+/* Mini-program-aligned visual overrides */
+:root {
+  --paper: #f5f6f8;
+  --paper-strong: #ffffff;
+  --ink: #1f2329;
+  --ink-soft: #4e5969;
+  --red: #1677ff;
+  --yellow: #eef3ff;
+  --blue: #245bdb;
+  --cyan: #edf2fa;
+  --pink: #f2f3f5;
+  --salmon: #f7f8fa;
+  --green: #52c41a;
+  --shadow-hard: none;
+  --shadow-small: none;
+  --border-strong: 1px solid #e5e6eb;
+  --border-soft: 1px solid #eceff5;
+  --radius-none: 12px;
+  --font-display: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+page,
+body,
+#app {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.law-page {
+  padding: 12px 12px 88px;
+  background: linear-gradient(180deg, #f7f8fa 0%, #f4f6fb 100%);
+}
+
+.law-page::before,
+.law-page::after {
+  display: none;
+}
+
+.page-hero,
+.surface-card,
+.metric-card,
+.hero-showcase,
+.score-spotlight,
+.reward-showcase,
+.profile-showcase,
+.scenario-card,
+.shortcut-card,
+.plan-card,
+.insight-card,
+.info-card,
+.result-story-card,
+.result-caution,
+.share-step,
+.claim-panel,
+.mini-panel,
+.empty-state,
+.text-panel,
+.notice-panel,
+.poster-note {
+  border: var(--border-strong) !important;
+  border-radius: 12px;
+  box-shadow: none !important;
+  background: #ffffff !important;
+  color: var(--ink) !important;
+}
+
+.page-hero {
+  margin-bottom: 12px;
+  padding: 16px;
+}
+
+.page-hero__sticker {
+  display: none;
+}
+
+.page-hero__eyebrow,
+.page-hero__tip,
+.badge,
+.field-label,
+.info-card__label,
+.metric-card__label,
+.mini-panel__label {
+  border: none !important;
+  box-shadow: none !important;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.page-hero__eyebrow {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #edf3ff;
+  color: #245bdb;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.page-hero__title {
+  max-width: none;
+  margin-top: 10px;
+  font-family: var(--font-body);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-transform: none;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
+.page-hero__description,
+.page-hero__tip,
+.section-heading__description,
+.helper-text,
+.subtle-note,
+.field-note,
+.list-item__text,
+.preformatted-text,
+.shortcut-card__body,
+.plan-card__description,
+.plan-card__meta,
+.result-story-card__body,
+.notice-panel__text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.section-heading__title,
+.result-story-card__title,
+.plan-card__title,
+.empty-state__title,
+.notice-panel__title,
+.shortcut-card__label {
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.section-heading__title {
+  max-width: none;
+  padding: 0;
+  font-size: 20px;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.metric-grid,
+.feature-grid,
+.insight-grid,
+.summary-grid,
+.meta-grid,
+.scenario-grid,
+.shortcut-grid {
+  gap: 10px;
+}
+
+.metric-card,
+.info-card,
+.mini-panel {
+  min-height: 0;
+  padding: 12px;
+  background: #f8f9fb !important;
+}
+
+.metric-card__value,
+.info-card__value,
+.plan-card__price,
+.result-stage__value,
+.reward-showcase__value {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-transform: none;
+  text-shadow: none;
+}
+
+.action-button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: none !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.action-button:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.action-button--primary {
+  background: #1677ff;
+  color: #ffffff;
+}
+
+.action-button--secondary {
+  background: #edf3ff;
+  color: #245bdb;
+}
+
+.action-button--ghost {
+  background: #f2f3f5;
+  color: #4e5969;
+}
+
+.chip,
+.profile-showcase__chip,
+.list-item__index,
+.score-spotlight__tag,
+.reward-showcase__tag,
+.profile-showcase__tag,
+.scenario-card__flag {
+  border: none !important;
+  border-radius: 8px;
+  box-shadow: none !important;
+  background: #edf3ff !important;
+  color: #245bdb !important;
+}
+
+.input-control,
+.text-panel__input {
+  border: 1px solid #d8dce3 !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+  background: #ffffff;
+}
+
+.result-stage__seal,
+.reward-showcase__disc,
+.score-spotlight__disc {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid #e5e6eb;
+  border-radius: 12px;
+  box-shadow: none;
+  background: #f8f9fb;
+}
+
+@media screen and (min-width: 760px) {
+  .law-page {
+    max-width: 760px;
+    padding: 16px 16px 100px;
+  }
+
+  .page-hero__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-button {
+    min-width: 0;
   }
 }

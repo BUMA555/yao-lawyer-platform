@@ -21,6 +21,10 @@ class Settings(BaseSettings):
 
     database_url: str = Field(default="sqlite:///./data/yao_lawyer.db", alias="DATABASE_URL")
     redis_url: str = Field(default="redis://localhost:6379/0", alias="REDIS_URL")
+    cors_allow_origins: str = Field(default="*", alias="CORS_ALLOW_ORIGINS")
+    cors_allow_methods: str = Field(default="*", alias="CORS_ALLOW_METHODS")
+    cors_allow_headers: str = Field(default="*", alias="CORS_ALLOW_HEADERS")
+    cors_allow_credentials: bool = Field(default=False, alias="CORS_ALLOW_CREDENTIALS")
 
     jwt_secret: str = Field(default="please-change-this-secret", alias="JWT_SECRET")
     jwt_expire_hours: int = Field(default=72, alias="JWT_EXPIRE_HOURS")
@@ -42,6 +46,25 @@ class Settings(BaseSettings):
     def is_dev(self) -> bool:
         return self.app_env.lower() in {"dev", "local", "test"}
 
+    @staticmethod
+    def _parse_csv(value: str) -> list[str]:
+        cleaned = value.strip()
+        if cleaned == "*":
+            return ["*"]
+        return [item.strip() for item in cleaned.split(",") if item.strip()]
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return self._parse_csv(self.cors_allow_origins)
+
+    @property
+    def cors_methods(self) -> list[str]:
+        return self._parse_csv(self.cors_allow_methods)
+
+    @property
+    def cors_headers(self) -> list[str]:
+        return self._parse_csv(self.cors_allow_headers)
+
     def ensure_runtime_dirs(self) -> None:
         if self.database_url.startswith("sqlite:///"):
             db_path = Path(self.database_url.replace("sqlite:///", "", 1))
@@ -50,4 +73,3 @@ class Settings(BaseSettings):
 
 settings = Settings()
 settings.ensure_runtime_dirs()
-
