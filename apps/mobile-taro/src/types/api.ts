@@ -83,6 +83,49 @@ export interface LoginResponse {
   user: LoginUser;
 }
 
+export interface CaseRecord {
+  id: string;
+  user_id: string;
+  title: string;
+  summary: string;
+  lane: string;
+  status: string;
+  priority: string;
+  source: string;
+  linked_session_ids: string[];
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+}
+
+export type CaseUrgency = "low" | "normal" | "high" | "critical";
+
+export interface CaseDraft {
+  scene: string;
+  title: string;
+  facts: string;
+  evidence: string;
+  goal: string;
+  urgency: CaseUrgency;
+  updated_at: string;
+}
+
+export interface MeResponse {
+  request_id: string;
+  user?: LoginUser;
+  data?: LoginUser;
+}
+
+export interface CaseDetailResponse {
+  request_id: string;
+  case: CaseRecord;
+}
+
+export interface CaseListResponse {
+  request_id: string;
+  cases: CaseRecord[];
+}
+
 export interface BindReferralResponse {
   request_id: string;
   inviter_user_id: string;

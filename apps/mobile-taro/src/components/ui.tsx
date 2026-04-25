@@ -11,6 +11,8 @@ interface PageHeroProps {
   eyebrow: string;
   title: string;
   description: string;
+  actions?: ReactNode;
+  actionsClassName?: string;
   stats?: HeroStat[];
   footer?: ReactNode;
   sticker?: string;
@@ -38,11 +40,27 @@ interface EmptyStateProps {
   action?: ReactNode;
 }
 
+interface StitchTopBarProps {
+  active?: string;
+  action?: string;
+}
+
 function joinClassNames(...classNames: Array<string | false | null | undefined>) {
   return classNames.filter(Boolean).join(" ");
 }
 
-export function PageHero({ eyebrow, title, description, stats = [], footer, sticker, aside, className }: PageHeroProps) {
+export function PageHero({
+  eyebrow,
+  title,
+  description,
+  actions,
+  actionsClassName,
+  stats = [],
+  footer,
+  sticker,
+  aside,
+  className
+}: PageHeroProps) {
   return (
     <View className={joinClassNames("page-hero", className)}>
       {sticker ? <Text className="page-hero__sticker">{sticker}</Text> : null}
@@ -51,6 +69,7 @@ export function PageHero({ eyebrow, title, description, stats = [], footer, stic
           <Text className="page-hero__eyebrow">{eyebrow}</Text>
           <Text className="page-hero__title">{title}</Text>
           <Text className="page-hero__description">{description}</Text>
+          {actions ? <View className={joinClassNames("page-hero__actions", actionsClassName)}>{actions}</View> : null}
           {stats.length ? (
             <View className="metric-grid">
               {stats.map((item) => (
@@ -104,6 +123,21 @@ export function EmptyState({ title, description, action }: EmptyStateProps) {
       <Text className="empty-state__title">{title}</Text>
       <Text className="empty-state__description">{description}</Text>
       {action ? <View className="empty-state__action">{action}</View> : null}
+    </View>
+  );
+}
+
+export function StitchTopBar({ active = "POW! 法律正义", action = "立即咨询" }: StitchTopBarProps) {
+  return (
+    <View className="stitch-topbar">
+      <View className="stitch-topbar__brand-block">
+        <Text className="stitch-topbar__brand">YAO LAWYER</Text>
+        <Text className="stitch-topbar__subtitle">Digital Law Chamber</Text>
+      </View>
+      <View className="stitch-topbar__right">
+        <Text className="stitch-topbar__active">{active}</Text>
+        <Text className="stitch-topbar__action">{action}</Text>
+      </View>
     </View>
   );
 }

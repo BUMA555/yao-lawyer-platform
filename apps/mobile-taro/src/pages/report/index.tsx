@@ -1,12 +1,18 @@
-import { View, Text, Button } from "@tarojs/components";
+﻿import { View, Text, Button } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 
-import { AnalysisResult } from "../../components/analysis-result";
 import { CaseResultBoard } from "../../components/case-result-board";
-import { EmptyState, PageHero, SectionCard } from "../../components/ui";
+import { EmptyState, PageHero, SectionCard, StitchTopBar } from "../../components/ui";
 import { useCurrentUser } from "../../hooks/use-current-user";
 import { useReport } from "../../hooks/use-report";
-import { buildReportText, formatRiskLevel } from "../../utils/format";
+import { formatRiskLevel } from "../../utils/format";
+
+const URGENCY_LABELS: Record<string, string> = {
+  low: "低",
+  normal: "中",
+  high: "高",
+  critical: "紧急"
+};
 
 export default function ReportPage() {
   const { user } = useCurrentUser();
@@ -15,81 +21,94 @@ export default function ReportPage() {
     void Taro.switchTab({ url: "/pages/profile/index" });
   }
 
-  const { loading, report, matterSummary, sessionId, refreshReport, copyReport } = useReport(jumpToProfile);
+  const { loading, draft, matterSummary, report, sessionId, refreshReport } = useReport(jumpToProfile);
+  const hasDraft = Boolean(draft && (draft.title.trim() || draft.facts.trim()));
 
   return (
     <View className="law-page law-page--report">
+      <StitchTopBar active="TOP SECRET! 结果卡" action="深度分析" />
+
       <PageHero
-        className="page-hero--report"
+        className="page-hero--report stitch-report-hero"
         eyebrow="YAO LAWYER / RESULT"
-        sticker="HEALTH CHECK RESULT"
-        title="结果先落地，再谈深度"
-        description="参考进化史的主逻辑，这一页先给你结果卡，让你知道现在更像什么问题、最危险点在哪、接下来先做什么。"
+        sticker={report ? "RESULT READY" : "WAITING"}
+        title={"深度法律\n分析报告"}
+        description="这里承接最近一次提问后的结果卡：风险等级、证据缺口、48 小时动作和可解锁的深度视角。结果卡基于你提供的信息生成，重大节点建议人工复核。"
         stats={[
-          { label: "最近会话", value: sessionId ? "已连接" : "未连接" },
+          { label: "会话状态", value: sessionId ? "已连接" : "未连接" },
           { label: "账号状态", value: user ? "已登录" : "待登录" },
-          { label: "结果形态", value: "可复制结果卡" }
+          { label: "风险等级", value: report ? formatRiskLevel(report.risk_level) : "待生成" },
+          { label: "结果状态", value: report ? "初筛完成" : "待提问" }
         ]}
-        footer={<Text className="page-hero__tip">这一页优先读取最近一次咨询结果，再决定要不要去邀请页解锁或付费升级。</Text>}
         aside={
-          <View className="score-spotlight">
-            <Text className="score-spotlight__tag">{sessionId ? "RESULT READY" : "NO RESULT"}</Text>
-            <View className="score-spotlight__disc">
-              <Text className="score-spotlight__label">风险状态</Text>
-              <Text className="score-spotlight__value">{report ? formatRiskLevel(report.risk_level) : "待生成"}</Text>
-            </View>
-            <Text className="score-spotlight__note">
-              {report ? "先看核心结论和证据缺口，再决定要不要进深度版。" : "回首页完成一次案件体检，这里才会真正亮起来。"}
-            </Text>
+          <View className="report-risk-poster">
+            <Text className="report-risk-poster__tag">风险等级</Text>
+            <Text className="report-risk-poster__value">{report ? formatRiskLevel(report.risk_level) : "未生成"}</Text>
+            <Text className="report-risk-poster__note">{report ? "先看证据缺口，再决定是否复核。" : "先去问姚律师，生成第一张结果卡。"}</Text>
           </View>
         }
       />
 
-      <SectionCard title="结果卡刷新" description="会话还在，就直接刷新结果；会话没了，就先回首页重新体检。" tag="ACTION">
-        <View className="button-row">
-          <Button className="action-button action-button--primary" loading={loading} onClick={refreshReport}>
-            刷新结果卡
-          </Button>
-          <Button className="action-button action-button--secondary" onClick={copyReport}>
-            复制完整结果
-          </Button>
-          <Button className="action-button action-button--ghost" onClick={() => void Taro.switchTab({ url: "/pages/orders/index" })}>
-            去邀请 / 解锁
-          </Button>
-        </View>
-
-        <Text className="subtle-note">
-          {matterSummary ? `最近案件摘要：${matterSummary.slice(0, 80)}${matterSummary.length > 80 ? "..." : ""}` : "最近还没有能拿来压缩的案件摘要。"}
-        </Text>
-      </SectionCard>
-
       {report ? (
-        <>
-          <SectionCard title="体检结果卡" description="当前判断、风险等级、危险点、证据缺口和 48 小时动作，先把这些看明白。" tag="RESULT">
-            <CaseResultBoard report={report} />
-          </SectionCard>
-
-          <SectionCard title="深度视角预览" description="如果你准备继续推进，再看法官版、客户版和团队版这些更深一层的表达。" tag="DEEP">
-            <AnalysisResult result={report} />
-          </SectionCard>
-
-          <SectionCard title="整段复制，直接发" description="发给客户、家人、同事或群里，这一块就是结果卡的完整版。" tag="COPY">
-            <Text className="preformatted-text">{buildReportText(report)}</Text>
-          </SectionCard>
-        </>
+        <SectionCard title="结果卡" description="姚律师给出的核心判断、证据缺口与 48 小时动作。" tag="RESULT" className="stitch-result-card">
+          <CaseResultBoard report={report} />
+        </SectionCard>
       ) : (
-        <SectionCard title="还没结果可看" description="先去首页完成一次案件体检，这里才会出现真正的结果卡。" tag="WAIT">
+        <SectionCard title="还没结果可看" description="先去问姚律师，把问题说出来。" tag="WAIT">
           <EmptyState
-            title="现在没有可生成的结果"
-            description="先从热门场景进体检，把真实案情填进去，拿到第一版结果后再回来继续。"
+            title="当前没有可展示结果"
+            description="先去问姚律师，完成一次基础分析后这里会显示结果卡。"
             action={
               <Button className="action-button action-button--secondary" onClick={() => void Taro.switchTab({ url: "/pages/consult/index" })}>
-                去首页开始
+                去问姚律师
               </Button>
             }
           />
         </SectionCard>
       )}
+
+      <SectionCard title="下一步" description="默认展示最近结果；需要更完整视角时再刷新深度分析。" tag="ACTION">
+        <View className="button-row">
+          <Button className="action-button action-button--primary" loading={loading} onClick={refreshReport}>
+            生成深度视角
+          </Button>
+          <Button
+            className="action-button action-button--secondary"
+            disabled={!report}
+            onClick={() => void Taro.navigateTo({ url: "/pages/report/deep/index" })}
+          >
+            查看深度报告
+          </Button>
+        </View>
+      </SectionCard>
+
+      <SectionCard title="问题摘要" description="来自你刚才向姚律师描述的问题。" tag="QUESTION">
+        {hasDraft ? (
+          <View className="home-next-actions">
+            <View className="home-next-action">
+              <Text className="home-next-action__title">案件标题</Text>
+              <Text className="home-next-action__desc">{draft?.title || "未填写"}</Text>
+            </View>
+            <View className="home-next-action">
+              <Text className="home-next-action__title">场景与紧急度</Text>
+              <Text className="home-next-action__desc">
+                {`${draft?.scene || "general"} / ${URGENCY_LABELS[draft?.urgency || "normal"] || draft?.urgency || "中"}`}
+              </Text>
+            </View>
+            <View className="home-next-action">
+              <Text className="home-next-action__title">目标诉求</Text>
+              <Text className="home-next-action__desc">{draft?.goal || "未填写"}</Text>
+            </View>
+          </View>
+        ) : (
+          <Text className="helper-text">暂无结构化草稿，请先回案件入口建立草稿。</Text>
+        )}
+
+        <View className="notice-panel" style={{ marginTop: "12px" }}>
+          <Text className="notice-panel__title">提交摘要预览</Text>
+          <Text className="preformatted-text">{matterSummary || "请先补充案件字段"}</Text>
+        </View>
+      </SectionCard>
     </View>
   );
 }

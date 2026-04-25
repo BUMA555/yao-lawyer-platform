@@ -1,3 +1,3 @@
-export default {
-  navigationBarTitleText: "体检结果"
+﻿export default {
+  navigationBarTitleText: "姚律师结果"
 };

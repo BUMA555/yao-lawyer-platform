@@ -1,27 +1,36 @@
-import Taro, { useDidShow } from "@tarojs/taro";
+﻿import Taro, { useDidShow } from "@tarojs/taro";
 import { useState } from "react";
 
 import {
   apiPost,
+  buildConsultMessageFromDraft,
+  getCaseDraft,
   getChatSessionId,
-  getLastConsultMessage,
   getLastConsultResult,
   hasAuthToken,
   setLastConsultResult
 } from "../services/api";
-import type { ChatRespondPayload, ChatRespondResponse } from "../types/api";
+import type { CaseDraft, ChatRespondPayload, ChatRespondResponse } from "../types/api";
 import { showErrorToast, showToast } from "../utils/feedback";
 import { buildReportText } from "../utils/format";
+
+function resolveMatterSummary(draft: CaseDraft | null) {
+  const summary = buildConsultMessageFromDraft(draft).trim();
+  return summary;
+}
 
 export function useReport(onRequireLogin: () => void) {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<ChatRespondPayload | null>(getLastConsultResult());
-  const [matterSummary, setMatterSummary] = useState(getLastConsultMessage());
+  const [draft, setDraft] = useState<CaseDraft | null>(getCaseDraft());
+  const [matterSummary, setMatterSummary] = useState(resolveMatterSummary(getCaseDraft()));
   const [sessionId, setSessionId] = useState(getChatSessionId());
 
   useDidShow(() => {
+    const latestDraft = getCaseDraft();
     setReport(getLastConsultResult());
-    setMatterSummary(getLastConsultMessage());
+    setDraft(latestDraft);
+    setMatterSummary(resolveMatterSummary(latestDraft));
     setSessionId(getChatSessionId());
   });
 
@@ -37,6 +46,13 @@ export function useReport(onRequireLogin: () => void) {
       return;
     }
 
+    const currentSummary = resolveMatterSummary(getCaseDraft());
+
+    if (!currentSummary) {
+      showToast("请先补充案件草稿");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -44,7 +60,7 @@ export function useReport(onRequireLogin: () => void) {
         "/v1/chat/respond",
         {
           session_id: sessionId,
-          user_message: "请按法官版、客户版、团队版和下一步动作，生成一份可直接同步的案件汇报。",
+          user_message: `请基于以下案件草稿生成汇报：\n${currentSummary}\n\n请按法官版、客户版、团队版和下一步动作输出。`,
           output_mode: "report"
         }
       );
@@ -73,6 +89,7 @@ export function useReport(onRequireLogin: () => void) {
 
   return {
     loading,
+    draft,
     matterSummary,
     report,
     sessionId,

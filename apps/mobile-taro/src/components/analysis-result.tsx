@@ -1,4 +1,4 @@
-import { Text, View } from "@tarojs/components";
+﻿import { Text, View } from "@tarojs/components";
 import type { ReactNode } from "react";
 
 import type { ChatRespondPayload } from "../types/api";
@@ -40,7 +40,7 @@ export function AnalysisResult({ result, footer }: AnalysisResultProps) {
 
       {result.status === "queued" ? (
         <View className="notice-panel notice-panel--warning" style={{ marginTop: "16px" }}>
-          <Text className="notice-panel__title">当前进入高风险核验队列</Text>
+          <Text className="notice-panel__title">当前进入人工核验队列</Text>
           <Text className="notice-panel__text">
             {result.eta_seconds
               ? `预计 ${Math.max(1, Math.round(result.eta_seconds / 60))} 分钟内给出更稳的复核结果。`
@@ -51,20 +51,20 @@ export function AnalysisResult({ result, footer }: AnalysisResultProps) {
 
       <View className="insight-grid">
         <View className="insight-card">
-          <Text className="insight-card__eyebrow">JUDGE VERSION</Text>
-          <Text className="insight-card__title">法官版</Text>
+          <Text className="insight-card__eyebrow">COURT VIEW</Text>
+          <Text className="insight-card__title">裁判视角</Text>
           <Text className="insight-card__body">{result.judge_version}</Text>
         </View>
 
         <View className="insight-card">
-          <Text className="insight-card__eyebrow">CLIENT VERSION</Text>
-          <Text className="insight-card__title">客户版</Text>
+          <Text className="insight-card__eyebrow">CLIENT VIEW</Text>
+          <Text className="insight-card__title">当事人视角</Text>
           <Text className="insight-card__body">{result.client_version}</Text>
         </View>
 
         <View className="insight-card">
-          <Text className="insight-card__eyebrow">TEAM VERSION</Text>
-          <Text className="insight-card__title">团队版</Text>
+          <Text className="insight-card__eyebrow">ACTION VIEW</Text>
+          <Text className="insight-card__title">执行视角</Text>
           <Text className="insight-card__body">{result.team_version}</Text>
         </View>
       </View>

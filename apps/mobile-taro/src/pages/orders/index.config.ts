@@ -1,3 +1,5 @@
-export default {
-  navigationBarTitleText: "邀请解锁"
+﻿export default {
+  navigationBarTitleText: "算力中心",
+  enableShareAppMessage: true,
+  enableShareTimeline: true
 };

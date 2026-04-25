@@ -1,4 +1,4 @@
-import { Text, View } from "@tarojs/components";
+﻿import { Text, View } from "@tarojs/components";
 import type { ReactNode } from "react";
 
 import type { ChatRespondPayload } from "../types/api";
@@ -31,9 +31,9 @@ export function CaseResultBoard({ report, footer }: CaseResultBoardProps) {
   return (
     <>
       <View className="result-stage">
-        <Text className="result-stage__tag">{report.status === "queued" ? "RECHECK" : "RESULT READY"}</Text>
+        <Text className="result-stage__tag">{report.status === "queued" ? "等待复核" : "结果已生成"}</Text>
         <View className="result-stage__seal">
-          <Text className="result-stage__label">法律风险等级</Text>
+          <Text className="result-stage__label">当前风险</Text>
           <Text className="result-stage__value">{formatRiskLevel(report.risk_level)}</Text>
           <Text className="result-stage__note">{board.riskNote}</Text>
         </View>
@@ -41,7 +41,7 @@ export function CaseResultBoard({ report, footer }: CaseResultBoardProps) {
 
       <View className="result-story-grid">
         <View className="result-story-card result-story-card--primary">
-          <Text className="result-story-card__title">核心结论</Text>
+          <Text className="result-story-card__title">姚律师判断</Text>
           <Text className="result-story-card__body">{board.summary}</Text>
         </View>
 
@@ -58,7 +58,7 @@ export function CaseResultBoard({ report, footer }: CaseResultBoardProps) {
       </View>
 
       <View className="result-caution">
-        <Text className="result-caution__label">先别这么干</Text>
+        <Text className="result-caution__label">先别这么做</Text>
         <View className="list-block danger-list">
           {board.notRecommended.map((item, index) => (
             <View key={`${index}-${item}`} className="list-item">

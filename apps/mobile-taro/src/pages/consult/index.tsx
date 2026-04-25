@@ -1,11 +1,25 @@
 import { View, Text, Textarea, Button } from "@tarojs/components";
 import Taro from "@tarojs/taro";
+import { useEffect } from "react";
 
+import homeReferenceCover from "../../assets/home-reference-cover.jpg";
+import homeTypeContract from "../../assets/home-type-contract.jpg";
+import homeTypeFamily from "../../assets/home-type-family.jpg";
+import homeTypeLabor from "../../assets/home-type-labor.jpg";
+import homeTypeLoan from "../../assets/home-type-loan.jpg";
 import { CaseResultBoard } from "../../components/case-result-board";
-import { Badge, EmptyState, PageHero, SectionCard } from "../../components/ui";
+import { SectionCard } from "../../components/ui";
 import { useConsultation } from "../../hooks/use-consultation";
 import { useCurrentUser } from "../../hooks/use-current-user";
-import { getQuotaSummary, HOME_MISTAKES, HOME_SCENARIOS } from "../../utils/format";
+import { PENDING_INVITE_CODE_KEY } from "../../hooks/use-profile-actions";
+import {
+  clearCaseDraft,
+  clearChatSessionId,
+  clearCurrentCaseId,
+  clearLastConsultResult
+} from "../../services/api";
+import type { CaseUrgency } from "../../types/api";
+import { getQuotaTotal } from "../../utils/format";
 
 type ValueEvent = {
   detail: {
@@ -13,150 +27,336 @@ type ValueEvent = {
   };
 };
 
+type PromptGuide = {
+  key: string;
+  scene: string;
+  title: string;
+  label: string;
+  subtitle: string;
+  facts: string;
+  evidence: string;
+  goal: string;
+  urgency: CaseUrgency;
+};
+
+const TYPE_ICON_MAP: Record<string, string> = {
+  contract: homeTypeContract,
+  family: homeTypeFamily,
+  labor: homeTypeLabor,
+  loan: homeTypeLoan
+};
+
+const PROMPT_GUIDES: PromptGuide[] = [
+  {
+    key: "labor",
+    scene: "labor",
+    title: "劳动纠纷咨询",
+    label: "劳动纠纷",
+    subtitle: "辞退、欠薪、仲裁、社保",
+    facts:
+      "我在【公司名称】工作【多久】，岗位是【岗位】。公司在【时间】通知我【辞退/降薪/停工/拖欠工资】，给出的理由是【公司说法】，目前欠我【工资/补偿/加班费】。",
+    evidence: "劳动合同、工资流水、考勤记录、工作群聊天、辞退通知、录音或书面沟通。",
+    goal: "想知道仲裁前先准备什么、能主张哪些费用、下一步怎么留痕。",
+    urgency: "high"
+  },
+  {
+    key: "contract",
+    scene: "civil-commercial",
+    title: "合同纠纷咨询",
+    label: "合同纠纷",
+    subtitle: "合同欠款、违约、保全",
+    facts:
+      "我和【对方/公司】签过【合同类型】，约定金额【金额】。我已经完成【交付/服务/供货】，对方应在【时间】付款，但现在拖欠【金额/尾款】，理由是【对方说法】。",
+    evidence: "合同、订单、验收记录、发票、对账单、付款记录、催款聊天或函件。",
+    goal: "想判断是否需要先保全、现在起诉是否稳、证据还缺哪些。",
+    urgency: "normal"
+  },
+  {
+    key: "family",
+    scene: "family",
+    title: "婚姻家事咨询",
+    label: "婚姻家事",
+    subtitle: "离婚、抚养、财产、债务",
+    facts:
+      "我和【对方】目前处于【协商/分居/准备离婚/已经起诉】阶段。争议点主要是【孩子抚养/财产分割/债务/房产/彩礼】。关键时间线是【按时间写清楚】。",
+    evidence: "结婚证、户口本、房产/车辆/存款线索、转账记录、聊天记录、孩子照护记录。",
+    goal: "想先判断我的底线方案、证据缺口和下一步谈判或起诉顺序。",
+    urgency: "normal"
+  },
+  {
+    key: "loan",
+    scene: "fraud-boundary",
+    title: "借款欠款咨询",
+    label: "借款欠款",
+    subtitle: "借钱不还、催收、刑民边界",
+    facts:
+      "我在【时间】借给【对方关系】人民币【金额】元，约定【还款时间/方式】归还。现在对方已经拖了【多久】，最近一次沟通是【时间】，对方说【对方原话/态度】。",
+    evidence: "转账记录、聊天记录、催款记录、对方承认借款或承诺还款的文字/语音。",
+    goal: "想判断现在更适合起诉、调解还是报警，并想知道先补哪些证据。",
+    urgency: "high"
+  }
+] as const;
+
+const FLOW_STEPS = [
+  {
+    no: "1",
+    title: "整理案情",
+    body: "梳理时间线、对方、证据与目标"
+  },
+  {
+    no: "2",
+    title: "判断风险",
+    body: "分析法律关系，评估风险与胜算"
+  },
+  {
+    no: "3",
+    title: "行动建议",
+    body: "给出策略与方案，明确下一步行动"
+  }
+] as const;
+
+const PROMPT_FORMULAS = [
+  {
+    label: "生成标准问法",
+    title: "标准案件咨询",
+    facts:
+      "【发生时间】\n【对方是谁】\n【发生了什么】\n【金额/损失/影响】\n【对方现在怎么说】",
+    evidence: "【已有证据】合同、转账、聊天、录音、照片、通知、快递单、证人等。",
+    goal: "【想要结果】要回钱、解除合同、申请仲裁、起诉、报警、先保全、先谈判。"
+  },
+  {
+    label: "先问风险",
+    title: "先判断风险等级",
+    facts: "我想先判断这件事现在最大的风险是什么。事情经过是：【按时间线写清楚】。",
+    evidence: "目前能证明事实的材料有：【逐项列出来】。",
+    goal: "请先告诉我最危险的点、哪些动作先不要做、48 小时内先做什么。"
+  },
+  {
+    label: "先问证据",
+    title: "先检查证据缺口",
+    facts: "我准备推进这件事，但不确定证据够不够。核心事实是：【写清楚争议点】。",
+    evidence: "我已有证据：【列证据】。还没有的证据：【列不确定项】。",
+    goal: "请帮我判断证据强弱、缺口和补证顺序。"
+  }
+] as const;
+
+function applyToast(message: string) {
+  void Taro.showToast({ title: message, icon: "none", duration: 1600 });
+}
+
+function scrollTo(selector: string) {
+  void Taro.pageScrollTo({ selector, duration: 260 });
+}
+
 export default function ConsultPage() {
-  const { user } = useCurrentUser();
+  const { user, isLoggedIn } = useCurrentUser();
+  const inviteCodeFromShare = String(Taro.getCurrentInstance().router?.params?.invite_code || "");
+
+  useEffect(() => {
+    if (inviteCodeFromShare.trim()) {
+      Taro.setStorageSync(PENDING_INVITE_CODE_KEY, inviteCodeFromShare.trim().toUpperCase());
+    }
+  }, [inviteCodeFromShare]);
 
   function jumpToProfile() {
     void Taro.switchTab({ url: "/pages/profile/index" });
   }
 
-  const { message, setMessage, result, isSubmitting, isEscalating, submit, escalate, selectQuickPrompt } = useConsultation({
+  const {
+    draft,
+    result,
+    isSubmitting,
+    isEscalating,
+    setDraftField,
+    setUrgency,
+    selectQuickPrompt,
+    submit,
+    escalate
+  } = useConsultation({
     user,
     onRequireLogin: jumpToProfile
   });
 
-  return (
-    <View className="law-page law-page--consult">
-      <PageHero
-        className="page-hero--consult"
-        eyebrow="YAO LAWYER / ENTRY"
-        sticker="SELECT PRIMARY ISSUE"
-        title="先体检，再决定要不要冲"
-        description="这不是让你先陷进长对话，而是先做一次案件体检：判断问题类型、风险等级、证据缺口和 48 小时动作。"
-        stats={[
-          { label: "账号状态", value: user ? "已登录" : "待登录" },
-          { label: "产品主线", value: "先结果卡" },
-          { label: "风险机制", value: "R1-R3 分级" }
-        ]}
-        footer={<Text className="page-hero__tip">{getQuotaSummary(user)}</Text>}
-        aside={
-          <View className="hero-showcase hero-showcase--consult">
-            <Text className="hero-showcase__eyebrow">STEP 1</Text>
-            <Text className="hero-showcase__title">先选场景，再把事实灌进去</Text>
-            <Text className="hero-showcase__body">
-              {user
-                ? "借钱不还、劳动纠纷、合同欠款、证据整理这些高频入口已经给你排好了，别直接从空白页硬写。"
-                : "先登录，结果卡、邀请奖励和升级记录才会真正落到你的账号里。"}
-            </Text>
-          </View>
-        }
-      />
+  const question = draft.facts;
+  const evidence = draft.evidence;
+  const goal = draft.goal;
+  const canAsk = question.trim().length >= 12 && goal.trim().length >= 4;
+  const availableCredits = user ? getQuotaTotal(user) : 0;
 
-      <SectionCard
-        title="先看入口，不要乱打"
-        description="参考你第一版 UI 的主线，这一页先负责承接和分流，不负责一下子把所有功能全甩给用户。"
-        tag="ENTRY"
-      >
-        {result ? (
-          <View className="home-case-card">
-            <Text className="home-case-card__title">继续上次案件</Text>
-            <Text className="home-case-card__body">上次体检结果已经生成，可以继续看结果卡、分享解锁或申请人工复核。</Text>
-            <View className="button-row">
-              <Button className="action-button action-button--primary" onClick={() => void Taro.switchTab({ url: "/pages/report/index" })}>
-                继续查看结果
+  function applyGuide(guide: PromptGuide) {
+    selectQuickPrompt(guide);
+    applyToast("已套入咨询模板，往下补充细节就能生成结果卡");
+    scrollTo("#consult-ask-form");
+  }
+
+  function applyFormula(item: (typeof PROMPT_FORMULAS)[number]) {
+    selectQuickPrompt({
+      scene: draft.scene || "civil-commercial",
+      title: item.title,
+      facts: item.facts,
+      evidence: item.evidence,
+      goal: item.goal,
+      urgency: draft.urgency || "normal"
+    });
+    applyToast("已套用提问公式");
+  }
+
+  function markUrgent() {
+    setUrgency("critical");
+    if (!goal.trim()) {
+      setDraftField("goal", "想先判断是否需要马上保全、报警、仲裁或起诉，以及今天必须先做什么。");
+    }
+    applyToast("已标记为紧急问题");
+  }
+
+  function startFresh() {
+    clearCaseDraft();
+    clearCurrentCaseId();
+    clearChatSessionId();
+    clearLastConsultResult();
+    setDraftField("scene", "general");
+    setDraftField("title", "");
+    setDraftField("facts", "");
+    setDraftField("evidence", "");
+    setDraftField("goal", "");
+    setUrgency("normal");
+  }
+
+  return (
+    <View className="law-page law-page--consult comic-home">
+      <View className="comic-reference-cover">
+        <View className="comic-reference-cover__image" style={{ backgroundImage: `url(${homeReferenceCover})` }} />
+        <Button
+          className="comic-reference-cover__hotspot comic-reference-cover__hotspot--top"
+          onClick={() => scrollTo("#consult-ask-form")}
+        >
+          立即咨询
+        </Button>
+        <Button
+          className="comic-reference-cover__hotspot comic-reference-cover__hotspot--ask"
+          onClick={() => scrollTo("#consult-ask-form")}
+        >
+          立即描述问题
+        </Button>
+        <Button
+          className="comic-reference-cover__hotspot comic-reference-cover__hotspot--flow"
+          onClick={() => scrollTo("#consult-flow")}
+        >
+          查看咨询流程
+        </Button>
+      </View>
+
+      <View className="comic-section comic-type-section">
+        <Text className="comic-ribbon">常见咨询类型</Text>
+        <View className="comic-type-grid">
+          {PROMPT_GUIDES.map((guide) => (
+            <Button key={guide.key} className="comic-type-card" onClick={() => applyGuide(guide)}>
+              <View className="comic-type-card__icon" style={{ backgroundImage: `url(${TYPE_ICON_MAP[guide.key]})` }} />
+              <View className="comic-type-card__copy">
+                <Text className="comic-type-card__title">{guide.label}</Text>
+                <Text className="comic-type-card__line" />
+                <Text className="comic-type-card__subtitle">{guide.subtitle}</Text>
+              </View>
+            </Button>
+          ))}
+        </View>
+      </View>
+
+      <View id="consult-flow" className="comic-section comic-flow-section">
+        <Text className="comic-ribbon">咨询流程</Text>
+        <View className="comic-flow-row">
+          {FLOW_STEPS.map((step, index) => (
+            <View key={step.no} className="comic-flow-card">
+              <Text className="comic-flow-card__no">{step.no}</Text>
+              <Text className="comic-flow-card__title">{step.title}</Text>
+              <Text className="comic-flow-card__body">{step.body}</Text>
+              {index < FLOW_STEPS.length - 1 ? <Text className="comic-flow-card__arrow">▶</Text> : null}
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View className="comic-sticky-cta" onClick={() => scrollTo("#consult-ask-form")}>
+        <Text className="comic-sticky-cta__text">立即开始咨询</Text>
+        <Text className="comic-sticky-cta__hand">☝</Text>
+      </View>
+
+      <View id="consult-ask-form" className="comic-section comic-ask-section">
+        <Text className="comic-ribbon">立即开始咨询</Text>
+        <View className="comic-ask-card">
+          <View className="comic-status-row">
+            <Text className="comic-status-pill">账号：{isLoggedIn ? "已登录" : "待登录"}</Text>
+            <Text className="comic-status-pill">算力：{isLoggedIn ? `${availableCredits}` : "登录后看"}</Text>
+            <Text className="comic-status-pill">输出：风险结果卡</Text>
+          </View>
+
+          <View className="comic-formula-row">
+            {PROMPT_FORMULAS.map((item) => (
+              <Button key={item.label} className="comic-formula-button" onClick={() => applyFormula(item)}>
+                {item.label}
+              </Button>
+            ))}
+            <Button className="comic-formula-button comic-formula-button--danger" onClick={markUrgent}>
+              事情很急
+            </Button>
+          </View>
+
+          <View className="comic-field">
+            <Text className="comic-field__label">1. 事实经过</Text>
+            <Textarea
+              className="comic-field__input comic-field__input--large"
+              value={question}
+              maxlength={4000}
+              placeholder="按时间线写：什么时候、谁、发生什么、金额/损失多少、对方现在怎么说。"
+              onInput={(event: ValueEvent) => setDraftField("facts", event.detail.value)}
+            />
+          </View>
+
+          <View className="comic-field-grid">
+            <View className="comic-field">
+              <Text className="comic-field__label">2. 已有证据</Text>
+              <Textarea
+                className="comic-field__input"
+                value={evidence}
+                maxlength={1200}
+                placeholder="例如：合同、转账记录、聊天截图、录音、通知、照片。"
+                onInput={(event: ValueEvent) => setDraftField("evidence", event.detail.value)}
+              />
+            </View>
+            <View className="comic-field">
+              <Text className="comic-field__label">3. 想要结果</Text>
+              <Textarea
+                className="comic-field__input"
+                value={goal}
+                maxlength={800}
+                placeholder="例如：要回钱、先保全、起诉、仲裁、报警、谈判。"
+                onInput={(event: ValueEvent) => setDraftField("goal", event.detail.value)}
+              />
+            </View>
+          </View>
+
+          <View className="comic-submit-row">
+            <Text className="comic-submit-row__hint">{question.trim().length}/4000 · {goal.trim() ? "目标已写" : "还差想要结果"}</Text>
+            <View className="comic-submit-row__buttons">
+              <Button className="comic-clear-button" onClick={startFresh}>
+                清空
+              </Button>
+              <Button className="comic-submit-button" loading={isSubmitting} disabled={!canAsk} onClick={submit}>
+                立即生成结果卡
               </Button>
             </View>
           </View>
-        ) : (
-          <View className="notice-panel">
-            <Text className="notice-panel__title">{user ? "先从一个高频场景开始" : "你还没上号"}</Text>
-            <Text className="notice-panel__text">
-              {user
-                ? "别一上来就自由发挥，先选一个最接近的高频场景，后面的输入负担会小很多。"
-                : "不登录也能看结构，但结果、邀请和升级都不会替你留下记录。"}
-            </Text>
-            {!user ? (
-              <View className="button-row">
-                <Button className="action-button action-button--secondary" onClick={jumpToProfile}>
-                  先去登录
-                </Button>
-              </View>
-            ) : null}
-          </View>
-        )}
-      </SectionCard>
-
-      <SectionCard title="热门场景" description="先让用户判断自己更像哪类问题，再降低输入门槛，这才是最像你那版设计意图的入口。" tag="SCENES">
-        <View className="scenario-grid">
-          {HOME_SCENARIOS.map((item) => (
-            <View key={item.code} className="scenario-card" onClick={() => selectQuickPrompt(item.prompt)}>
-              <Text className="scenario-card__flag">{item.title.slice(0, 2)}</Text>
-              <Text className="scenario-card__title">{item.title}</Text>
-              <Text className="scenario-card__subtitle">{item.subtitle}</Text>
-            </View>
-          ))}
         </View>
-      </SectionCard>
-
-      <SectionCard title="今天最容易做错的事" description="先给风险提醒，比一上来讲法条更能拦住用户乱动作。" tag="DON'T" tone="accent">
-        <View className="list-block">
-          {HOME_MISTAKES.map((item, index) => (
-            <View key={item} className="list-item">
-              <Text className="list-item__index">{index + 1}</Text>
-              <Text className="list-item__text">{item}</Text>
-            </View>
-          ))}
-        </View>
-      </SectionCard>
-
-      <SectionCard title="开始案件体检" description="不用一次写很多，先把最关键的事实、证据和当前担心点扔进来。" tag="INTAKE">
-        {user ? (
-          <View className="inline-summary">
-            <Badge label={`当前账号：${user.mobile}`} tone="success" />
-            <Text className="helper-text">{getQuotaSummary(user)}</Text>
-          </View>
-        ) : null}
-
-        <View className="chip-row" style={{ marginTop: "16px" }}>
-          {HOME_SCENARIOS.map((item) => (
-            <View key={item.title} className="chip chip--interactive" onClick={() => selectQuickPrompt(item.prompt)}>
-              <Text className="chip__label">{item.title}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View className="poster-note">
-          <Text className="poster-note__label">最好这样写</Text>
-          <Text className="poster-note__body">按时间线、证据、对方动作、你想达到的目标这 4 块写，系统给出的结果卡会更像真案情而不是闲聊。</Text>
-        </View>
-
-        <View className="text-panel">
-          <Textarea
-            className="text-panel__input"
-            value={message}
-            onInput={(event: ValueEvent) => setMessage(event.detail.value)}
-            placeholder="例：2025 年 9 月签了采购合同，对方 11 月开始拖欠货款；我现在有合同、对账单、发票、催款聊天记录；尚未起诉，下周准备立案。"
-            maxlength={8000}
-            autoHeight
-          />
-        </View>
-
-        <View className="action-row">
-          <Text className="helper-text">已输入 {message.trim().length} 字。别客气，把时间线、证据、程序节点和你的目标都狠狠干进去。</Text>
-          <Button className="action-button action-button--primary" loading={isSubmitting} onClick={submit}>
-            开始分析
-          </Button>
-        </View>
-      </SectionCard>
+      </View>
 
       {result ? (
-        <SectionCard title="结果预览" description="这里先给你一张能立刻看懂的结果卡，完整结果和深度视角放到结果页继续承接。" tag="PREVIEW">
+        <SectionCard title="姚律师刚给出的结果卡" description="结果已保存到“结果”页，也可以继续人工复核。" tag="RESULT">
           <CaseResultBoard
             report={result}
             footer={
-              <View className="dual-actions">
+              <View className="button-row">
                 <Button className="action-button action-button--secondary" onClick={() => void Taro.switchTab({ url: "/pages/report/index" })}>
-                  去结果页继续看
+                  查看完整结果
                 </Button>
                 <Button className="action-button action-button--ghost" loading={isEscalating} onClick={escalate}>
                   申请人工复核
@@ -165,14 +365,7 @@ export default function ConsultPage() {
             }
           />
         </SectionCard>
-      ) : (
-        <SectionCard title="结果卡会长什么样" description="不是先让你读一坨分析，而是先给你：当前判断、危险点、证据缺口和动作清单。" tag="PREVIEW">
-          <EmptyState
-            title="现在还没生成结果卡"
-            description="从一个真实案件开始就够了。先把问题拆清，再决定要不要分享、升级或继续补材料。"
-          />
-        </SectionCard>
-      )}
+      ) : null}
     </View>
   );
 }

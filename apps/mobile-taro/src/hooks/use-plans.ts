@@ -1,4 +1,4 @@
-import Taro, { useDidShow } from "@tarojs/taro";
+﻿import Taro, { useDidShow } from "@tarojs/taro";
 import { useState } from "react";
 
 import { apiGet, apiPost, hasAuthToken } from "../services/api";
@@ -48,8 +48,10 @@ export function usePlans(onRequireLogin: () => void) {
       });
 
       await Taro.showModal({
-        title: "支付模拟已生成",
-        content: JSON.stringify(prepay.prepay_payload || {}, null, 2),
+        title: "订单已创建",
+        content: prepay.prepay_payload
+          ? "当前环境已生成支付参数；正式接入微信支付后会直接拉起收银台。"
+          : "订单已创建，等待支付参数返回。",
         showCancel: false
       });
     } catch (error) {

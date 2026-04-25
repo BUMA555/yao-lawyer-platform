@@ -1,5 +1,5 @@
-import Taro from "@tarojs/taro";
-import { useState } from "react";
+﻿import Taro from "@tarojs/taro";
+import { useEffect, useState } from "react";
 
 import { apiPost, setAuthToken } from "../services/api";
 import type {
@@ -11,6 +11,16 @@ import type {
 } from "../types/api";
 import { showErrorToast, showToast } from "../utils/feedback";
 
+export const PENDING_INVITE_CODE_KEY = "pending_invite_code";
+
+function readPendingInviteCode() {
+  try {
+    return String(Taro.getStorageSync(PENDING_INVITE_CODE_KEY) || "");
+  } catch {
+    return "";
+  }
+}
+
 interface UseProfileActionsOptions {
   user: LoginUser | null;
   saveUser: (nextUser: LoginUser) => void;
@@ -20,12 +30,16 @@ interface UseProfileActionsOptions {
 export function useProfileActions({ user, saveUser, clearUser }: UseProfileActionsOptions) {
   const [mobile, setMobile] = useState(user?.mobile ?? "");
   const [code, setCode] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
+  const [inviteCode, setInviteCode] = useState(readPendingInviteCode);
   const [debugCode, setDebugCode] = useState("");
   const [sending, setSending] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [binding, setBinding] = useState(false);
   const [claiming, setClaiming] = useState(false);
+
+  useEffect(() => {
+    setMobile(user?.mobile ?? "");
+  }, [user?.mobile]);
 
   async function sendCode() {
     const cleanedMobile = mobile.trim();
@@ -107,6 +121,7 @@ export function useProfileActions({ user, saveUser, clearUser }: UseProfileActio
         device_fingerprint: "yao-lawyer-mobile"
       });
 
+      Taro.removeStorageSync(PENDING_INVITE_CODE_KEY);
       showToast("邀请码绑定成功");
     } catch (error) {
       showErrorToast(error);
