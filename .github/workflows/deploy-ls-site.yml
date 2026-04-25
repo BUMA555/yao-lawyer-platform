@@ -45,7 +45,6 @@ jobs:
         working-directory: apps/mobile-taro
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
-          H5_PUBLIC_ORIGIN: https://ls.buma55.com
         run: npm run build:h5
 
 
