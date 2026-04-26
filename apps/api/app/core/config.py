@@ -65,6 +65,14 @@ class Settings(BaseSettings):
     def cors_headers(self) -> list[str]:
         return self._parse_csv(self.cors_allow_headers)
 
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        url = self.database_url.strip()
+        if url.startswith("postgres://"):
+            return f"postgresql+psycopg://{url.removeprefix('postgres://')}"
+        if url.startswith("postgresql://"):
+            return f"postgresql+psycopg://{url.removeprefix('postgresql://')}"
+        return url
     def ensure_runtime_dirs(self) -> None:
         if self.database_url.startswith("sqlite:///"):
             db_path = Path(self.database_url.replace("sqlite:///", "", 1))
