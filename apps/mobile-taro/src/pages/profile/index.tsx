@@ -1,5 +1,6 @@
 ﻿import { View, Text, Input, Button } from "@tarojs/components";
 import Taro from "@tarojs/taro";
+import { useEffect, useRef } from "react";
 
 import { Badge, EmptyState, PageHero, SectionCard, StitchTopBar } from "../../components/ui";
 import { useCurrentUser } from "../../hooks/use-current-user";
@@ -14,6 +15,7 @@ type ValueEvent = {
 
 export default function ProfilePage() {
   const { user, saveUser, clearUser } = useCurrentUser();
+  const autoTestLoginStarted = useRef(false);
 
   const {
     mobile,
@@ -22,13 +24,16 @@ export default function ProfilePage() {
     debugCode,
     sending,
     loggingIn,
+    quickLoggingIn,
     binding,
     claiming,
+    canUseDevLogin,
     setMobile,
     setCode,
     setInviteCode,
     sendCode,
     login,
+    quickDevLogin,
     bindInvite,
     claimReward,
     copyInviteCode,
@@ -38,6 +43,19 @@ export default function ProfilePage() {
     saveUser,
     clearUser
   });
+
+  useEffect(() => {
+    if (user || !canUseDevLogin || autoTestLoginStarted.current || typeof window === "undefined") {
+      return;
+    }
+
+    if (!window.location.search.includes("auto_test_login=1")) {
+      return;
+    }
+
+    autoTestLoginStarted.current = true;
+    void quickDevLogin();
+  }, [canUseDevLogin, quickDevLogin, user]);
 
   return (
     <View className="law-page law-page--profile">
@@ -49,6 +67,13 @@ export default function ProfilePage() {
         sticker={user ? "已登录" : "待登录"}
         title={user ? "我的姚律师" : "正义\n从这里开始"}
         description="登录后，提问记录、结果卡、算力余额和分享奖励才会稳定归到你的账号下。账号中心会承接案件资产、订单记录、奖励明细和服务边界。"
+        actions={
+          !user && canUseDevLogin ? (
+            <Button className="action-button action-button--secondary local-test-login" loading={quickLoggingIn} onClick={quickDevLogin}>
+              一键测试登录
+            </Button>
+          ) : null
+        }
         stats={
           user
             ? [
@@ -78,6 +103,18 @@ export default function ProfilePage() {
 
       {!user ? (
         <SectionCard title="登录账号" description="先把登录跑通，后面提问、结果、算力和奖励才能稳定挂在你的名下。" tag="ACCESS" className="stitch-login-card">
+          {canUseDevLogin ? (
+            <View className="local-test-panel">
+              <View>
+                <Text className="local-test-panel__label">本地功能测试</Text>
+                <Text className="local-test-panel__body">点一下会走真实验证码接口和登录接口，自动使用测试手机号 13800138000。</Text>
+              </View>
+              <Button className="action-button action-button--secondary local-test-panel__button" loading={quickLoggingIn} onClick={quickDevLogin}>
+                直接登录测试账号
+              </Button>
+            </View>
+          ) : null}
+
           <View className="form-stack">
             <View>
               <Text className="field-label">手机号</Text>

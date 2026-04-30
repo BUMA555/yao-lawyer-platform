@@ -1,7 +1,7 @@
 ﻿import Taro from "@tarojs/taro";
 import { useEffect, useState } from "react";
 
-import { apiPost, setAuthToken } from "../services/api";
+import { apiPost, isLocalTestEnvironment, setAuthToken } from "../services/api";
 import type {
   BindReferralResponse,
   ClaimRewardResponse,
@@ -12,6 +12,7 @@ import type {
 import { showErrorToast, showToast } from "../utils/feedback";
 
 export const PENDING_INVITE_CODE_KEY = "pending_invite_code";
+const LOCAL_TEST_MOBILE = "13800138000";
 
 function readPendingInviteCode() {
   try {
@@ -34,6 +35,7 @@ export function useProfileActions({ user, saveUser, clearUser }: UseProfileActio
   const [debugCode, setDebugCode] = useState("");
   const [sending, setSending] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [quickLoggingIn, setQuickLoggingIn] = useState(false);
   const [binding, setBinding] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
@@ -99,6 +101,52 @@ export function useProfileActions({ user, saveUser, clearUser }: UseProfileActio
       showErrorToast(error);
     } finally {
       setLoggingIn(false);
+    }
+  }
+
+  async function quickDevLogin() {
+    if (!isLocalTestEnvironment()) {
+      showToast("仅本地测试环境可用");
+      return;
+    }
+
+    setQuickLoggingIn(true);
+
+    try {
+      setMobile(LOCAL_TEST_MOBILE);
+
+      const codeResponse = await apiPost<SendCodeResponse, { mobile: string; scene: string }>(
+        "/v1/auth/mobile/send-code",
+        { mobile: LOCAL_TEST_MOBILE, scene: "login" },
+        false
+      );
+
+      if (!codeResponse.debug_code) {
+        throw new Error("本地后端没有返回开发验证码");
+      }
+
+      setCode(codeResponse.debug_code);
+      setDebugCode(codeResponse.debug_code);
+
+      const response = await apiPost<LoginResponse, { mobile: string; code: string; device_fingerprint: string; nickname: string }>(
+        "/v1/auth/mobile/login",
+        {
+          mobile: LOCAL_TEST_MOBILE,
+          code: codeResponse.debug_code,
+          device_fingerprint: "yao-lawyer-local-test",
+          nickname: "姚律师测试用户"
+        },
+        false
+      );
+
+      setAuthToken(response.token);
+      saveUser(response.user);
+      setMobile(response.user.mobile);
+      showToast("已登录测试账号");
+    } catch (error) {
+      showErrorToast(error);
+    } finally {
+      setQuickLoggingIn(false);
     }
   }
 
@@ -192,13 +240,16 @@ export function useProfileActions({ user, saveUser, clearUser }: UseProfileActio
     debugCode,
     sending,
     loggingIn,
+    quickLoggingIn,
     binding,
     claiming,
+    canUseDevLogin: isLocalTestEnvironment(),
     setMobile,
     setCode,
     setInviteCode,
     sendCode,
     login,
+    quickDevLogin,
     bindInvite,
     claimReward,
     copyInviteCode,

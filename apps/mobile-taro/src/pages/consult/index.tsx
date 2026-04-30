@@ -248,9 +248,14 @@ export default function ConsultPage() {
 
       <View className="comic-section comic-type-section">
         <Text className="comic-ribbon">常见咨询类型</Text>
+        <View className="comic-type-intro">
+          <Text className="comic-type-intro__tag">先选场景</Text>
+          <Text className="comic-type-intro__title">点一下，姚律师先替你把问题问准</Text>
+          <Text className="comic-type-intro__body">自动带出时间线、证据和诉求模板，别再只问“我该怎么办”。</Text>
+        </View>
         <View className="comic-type-grid">
           {PROMPT_GUIDES.map((guide) => (
-            <Button key={guide.key} className="comic-type-card" onClick={() => applyGuide(guide)}>
+            <Button key={guide.key} className={`comic-type-card comic-type-card--${guide.key}`} onClick={() => applyGuide(guide)}>
               <View className="comic-type-card__icon" style={{ backgroundImage: `url(${TYPE_ICON_MAP[guide.key]})` }} />
               <View className="comic-type-card__copy">
                 <Text className="comic-type-card__title">{guide.label}</Text>

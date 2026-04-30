@@ -14,6 +14,14 @@ const LOGIN_RETURN_TO_KEY = "login_return_to";
 
 const CASE_URGENCY_SET: Set<CaseUrgency> = new Set(["low", "normal", "high", "critical"]);
 
+export function isLocalTestEnvironment() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+}
+
 function getToken() {
   return Taro.getStorageSync(AUTH_TOKEN_KEY);
 }
