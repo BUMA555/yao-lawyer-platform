@@ -25,6 +25,9 @@ class User(Base, TimestampMixin):
     mobile: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     nickname: Mapped[str] = mapped_column(String(60), default="")
     device_fingerprint: Mapped[str] = mapped_column(String(120), default="")
+    wechat_openid: Mapped[str | None] = mapped_column(String(80), unique=True, nullable=True, index=True)
+    wechat_unionid: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    login_provider: Mapped[str] = mapped_column(String(20), default="mobile")
     referred_by_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     invite_code: Mapped[str] = mapped_column(String(16), unique=True, index=True)
     free_chat_quota: Mapped[int] = mapped_column(Integer, default=10)
@@ -34,6 +37,7 @@ class User(Base, TimestampMixin):
     is_blacklisted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     sessions: Mapped[list["ChatSession"]] = relationship("ChatSession", back_populates="user")
+    consult_cases: Mapped[list["ConsultCase"]] = relationship("ConsultCase", back_populates="user")
 
 
 class SmsCode(Base):
@@ -59,6 +63,62 @@ class ChatSession(Base, TimestampMixin):
 
     user: Mapped["User"] = relationship("User", back_populates="sessions")
     messages: Mapped[list["ChatMessage"]] = relationship("ChatMessage", back_populates="session")
+    case_links: Mapped[list["CaseSessionLink"]] = relationship("CaseSessionLink", back_populates="session")
+
+
+class ConsultCase(Base, TimestampMixin):
+    __tablename__ = "consult_cases"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    summary: Mapped[str] = mapped_column(Text, default="")
+    lane: Mapped[str] = mapped_column(String(40), default="civil-commercial")
+    status: Mapped[str] = mapped_column(String(20), default="open")
+    priority: Mapped[str] = mapped_column(String(20), default="normal")
+    source: Mapped[str] = mapped_column(String(20), default="chat")
+    meta_json: Mapped[str] = mapped_column(Text, default="{}")
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship("User", back_populates="consult_cases")
+    session_links: Mapped[list["CaseSessionLink"]] = relationship("CaseSessionLink", back_populates="case")
+    service_tasks: Mapped[list["ServiceTask"]] = relationship("ServiceTask", back_populates="case")
+
+
+class CaseSessionLink(Base):
+    __tablename__ = "case_session_links"
+    __table_args__ = (
+        UniqueConstraint("session_id", name="uq_case_session_once"),
+        UniqueConstraint("case_id", "session_id", name="uq_case_session_pair"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    case_id: Mapped[str] = mapped_column(String(36), ForeignKey("consult_cases.id"), index=True)
+    session_id: Mapped[str] = mapped_column(String(36), ForeignKey("chat_sessions.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    case: Mapped["ConsultCase"] = relationship("ConsultCase", back_populates="session_links")
+    session: Mapped["ChatSession"] = relationship("ChatSession", back_populates="case_links")
+
+
+class ServiceTask(Base, TimestampMixin):
+    __tablename__ = "service_tasks"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    case_id: Mapped[str] = mapped_column(String(36), ForeignKey("consult_cases.id"), index=True)
+    session_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("chat_sessions.id"), nullable=True, index=True)
+    task_type: Mapped[str] = mapped_column(String(40), default="human_service")
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    priority: Mapped[str] = mapped_column(String(20), default="normal")
+    title: Mapped[str] = mapped_column(String(120), default="")
+    description: Mapped[str] = mapped_column(Text, default="")
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    assignee_ref: Mapped[str] = mapped_column(String(80), default="")
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    case: Mapped["ConsultCase"] = relationship("ConsultCase", back_populates="service_tasks")
 
 
 class ChatMessage(Base):
@@ -78,6 +138,60 @@ class ChatMessage(Base):
     session: Mapped["ChatSession"] = relationship("ChatSession", back_populates="messages")
 
 
+class ConsultationReport(Base, TimestampMixin):
+    __tablename__ = "consultation_reports"
+    __table_args__ = (
+        UniqueConstraint("session_id", "report_kind", name="uq_report_session_kind"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    case_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("consult_cases.id"), nullable=True, index=True)
+    session_id: Mapped[str] = mapped_column(String(36), ForeignKey("chat_sessions.id"), index=True)
+    report_kind: Mapped[str] = mapped_column(String(30), default="triage")
+    status: Mapped[str] = mapped_column(String(20), default="ready")
+    risk_level: Mapped[str] = mapped_column(String(20), default="R2")
+    lane: Mapped[str] = mapped_column(String(40), default="civil-commercial")
+    model: Mapped[str] = mapped_column(String(80), default="")
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    source_request_id: Mapped[str] = mapped_column(String(80), index=True, default="")
+
+
+class GeneratedDocument(Base, TimestampMixin):
+    __tablename__ = "generated_documents"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    case_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("consult_cases.id"), nullable=True, index=True)
+    document_type: Mapped[str] = mapped_column(String(40), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="draft")
+    title: Mapped[str] = mapped_column(String(160), default="")
+    content: Mapped[str] = mapped_column(Text, default="")
+    missing_fields_json: Mapped[str] = mapped_column(Text, default="[]")
+    warnings_json: Mapped[str] = mapped_column(Text, default="[]")
+    model: Mapped[str] = mapped_column(String(80), default="")
+    source_request_id: Mapped[str] = mapped_column(String(80), index=True, default="")
+
+
+class EntitlementLedger(Base):
+    __tablename__ = "entitlement_ledger"
+    __table_args__ = (
+        UniqueConstraint("user_id", "idempotency_key", name="uq_entitlement_idempotency"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    entitlement_type: Mapped[str] = mapped_column(String(40), default="chat")
+    delta: Mapped[int] = mapped_column(Integer)
+    balance_after: Mapped[int] = mapped_column(Integer, default=0)
+    reason: Mapped[str] = mapped_column(String(80), default="")
+    source_type: Mapped[str] = mapped_column(String(40), default="")
+    source_id: Mapped[str] = mapped_column(String(80), default="")
+    idempotency_key: Mapped[str] = mapped_column(String(160))
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
 class Plan(Base, TimestampMixin):
     __tablename__ = "plans"
 
@@ -94,12 +208,16 @@ class Plan(Base, TimestampMixin):
 
 class Order(Base, TimestampMixin):
     __tablename__ = "orders"
+    __table_args__ = (
+        UniqueConstraint("user_id", "idempotency_key", name="uq_order_user_idempotency"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
     plan_code: Mapped[str] = mapped_column(String(40), index=True)
     amount_cents: Mapped[int] = mapped_column(Integer)
     channel: Mapped[str] = mapped_column(String(20), default="wechat")
+    idempotency_key: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(20), default="created")
     provider_order_id: Mapped[str] = mapped_column(String(80), default="")
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -132,6 +250,7 @@ class ReferralBind(Base):
 
 class ReferralReward(Base):
     __tablename__ = "referral_rewards"
+    __table_args__ = (UniqueConstraint("invitee_user_id", "order_id", name="uq_referral_reward_order_once"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     inviter_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)

@@ -10,6 +10,10 @@ os.environ["APP_ENV"] = "test"
 os.environ["DEBUG"] = "true"
 os.environ["DATABASE_URL"] = "sqlite:///./data/test_yao.db"
 os.environ["JWT_SECRET"] = "test-secret"
+os.environ["ADMIN_BEARER_TOKEN"] = "admin-test-token"
+os.environ["PAYMENT_CALLBACK_WECHAT_SECRET"] = "wechat-callback-secret"
+os.environ["PAYMENT_CALLBACK_DOUYIN_SECRET"] = "douyin-callback-secret"
+os.environ["PAYMENT_MOCK_ENABLED"] = "true"
 
 from app.db.init_data import seed_plans
 from app.db.session import Base, SessionLocal, engine
@@ -59,3 +63,7 @@ def auth_headers(auth_user: dict) -> dict[str, str]:
 def login_user():
     return _login
 
+
+@pytest.fixture()
+def admin_headers() -> dict[str, str]:
+    return {"Authorization": "Bearer admin-test-token"}

@@ -1,0 +1,21 @@
+{
+  "appid": "wx0a51edc53e5c9ffe",
+  "compileType": "miniprogram",
+  "projectname": "yao-lawyer-mobile",
+  "miniprogramRoot": "./",
+  "libVersion": "3.7.7",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "compileHotReLoad": true,
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "uploadWithSourceMap": true
+  },
+  "packOptions": {
+    "ignore": []
+  }
+}

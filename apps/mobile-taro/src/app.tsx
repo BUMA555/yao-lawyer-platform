@@ -6,6 +6,10 @@ import type { LoginResponse } from "./types/api";
 
 import "./app.css";
 
+if (process.env.TARO_ENV === "h5") {
+  require("./app.h5.css");
+}
+
 const DEBUG_LOGIN_PARAMS = ["debugLoginMobile", "debug_login_mobile"];
 const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:8080";
 

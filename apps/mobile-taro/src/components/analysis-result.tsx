@@ -49,6 +49,11 @@ export function AnalysisResult({ result, footer }: AnalysisResultProps) {
         </View>
       ) : null}
 
+      <View className="result-story-card result-story-card--primary" style={{ marginTop: "16px" }}>
+        <Text className="result-story-card__title">当前判断</Text>
+        <Text className="result-story-card__body">{result.summary || result.client_version}</Text>
+      </View>
+
       <View className="insight-grid">
         <View className="insight-card">
           <Text className="insight-card__eyebrow">COURT VIEW</Text>
@@ -67,6 +72,12 @@ export function AnalysisResult({ result, footer }: AnalysisResultProps) {
           <Text className="insight-card__title">执行视角</Text>
           <Text className="insight-card__body">{result.team_version}</Text>
         </View>
+      </View>
+
+      <View className="summary-grid" style={{ marginTop: "16px" }}>
+        <ActionList title="已知事实" items={result.known_facts || []} />
+        <ActionList title="推定判断" items={result.inferences || []} />
+        <ActionList title="待核验与证据缺口" items={[...(result.to_verify || []), ...(result.evidence_gaps || [])]} />
       </View>
 
       <View className="summary-grid" style={{ marginTop: "16px" }}>

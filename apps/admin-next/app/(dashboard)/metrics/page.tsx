@@ -39,9 +39,10 @@ export default async function MetricsPage() {
           <Card title="开放工单" value={metrics.open_tickets} />
           <Card title="会话总数" value={metrics.chat_sessions} />
           <Card title="今日消息" value={metrics.messages_today} />
+          <Card title="风险队列" value={metrics.queued_tasks} />
+          <Card title="权益流水" value={metrics.entitlement_entries} />
         </div>
       )}
     </div>
   );
 }
-

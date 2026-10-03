@@ -14,6 +14,16 @@ const LOGIN_RETURN_TO_KEY = "login_return_to";
 
 const CASE_URGENCY_SET: Set<CaseUrgency> = new Set(["low", "normal", "high", "critical"]);
 
+export function createIdempotencyKey(prefix: string, seed = "") {
+  let hash = 0;
+  const value = `${prefix}:${seed}`;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return `${prefix}_${Math.abs(hash)}_${value.length}`;
+}
+
 export function isLocalTestEnvironment() {
   if (typeof window === "undefined") {
     return false;

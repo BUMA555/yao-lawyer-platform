@@ -1,4 +1,4 @@
-# Yao Lawyer Platform MVP
+﻿# Yao Lawyer Platform MVP
 
 Professional MVP scaffold for:
 
@@ -14,6 +14,26 @@ Professional MVP scaffold for:
 - `apps/admin-next`: Next.js operator/admin dashboard
 - `docs`: architecture, milestones, and operations notes
 - `infra`: Docker Compose for local infrastructure
+
+## PR Gate
+
+以打赢GPT-5.4视为代码进步，不是跑通代码。
+以“打赢 GPT-5.4”视为代码进步，不是“跑通代码”。
+
+1. 场景边界
+   - PR 必须明确目标场景、非目标场景、关键风险边界。
+   - 至少给出 1 个“不该支持”的反例，避免误扩展。
+2. 可验证正确性
+   - 每个 PR 至少新增或更新 1 个可复现验证（测试、脚本或手工验证步骤）。
+   - 受影响模块的既有验证必须全部通过（后端变更至少执行 `cd apps/api && pytest -q`）。
+3. 对抗性检查
+   - 至少列出 3 个“GPT-5.4 会追问”的对抗用例（边界输入、异常路径、权限/越权）。
+   - 每个用例必须给出实际结果与结论，不接受“理论可行”。
+4. 可回滚性
+   - PR 必须提供可执行回滚步骤，目标 10 分钟内可完成。
+   - 回滚后需要说明如何验证系统已恢复稳定状态。
+
+评审门槛：以上四项缺一不可；任一项证据不足或不可复现，PR 不得合并。
 
 ## Quick Start
 
@@ -69,4 +89,3 @@ Most important:
 - Request-level `request_id` is enforced on responses and headers.
 - AI provider outages degrade to queue mode and allow escalation ticket creation.
 - WeChat and Douyin payment endpoints are mock-safe for local development and ready for provider adapters.
-

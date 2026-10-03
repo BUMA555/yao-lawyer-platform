@@ -1,17 +1,36 @@
-export default function TicketsPage() {
+import { fetchAdminTickets } from "@/lib/api";
+
+export default async function TicketsPage() {
+  const token = process.env.ADMIN_BEARER_TOKEN || "";
+  let tickets: any[] = [];
+  let error = "";
+
+  try {
+    const response = await fetchAdminTickets(token);
+    tickets = response.tickets || [];
+  } catch (reason) {
+    error = reason instanceof Error ? reason.message : "工单读取失败";
+  }
+
   return (
     <div>
       <h1 style={{ marginTop: 0 }}>真人升级工单</h1>
-      <div style={{ background: "#fff", borderRadius: "10px", padding: "16px" }}>
-        <p>AI 转真人工单建议字段：</p>
-        <ul>
-          <li>优先级（R0-R3）</li>
-          <li>案件赛道（民商/劳动/公司控制/刑民交叉）</li>
-          <li>48小时动作是否已完成</li>
-          <li>客户联系方式与回访 SLA</li>
-        </ul>
+      {error ? <p style={{ color: "#b42318" }}>{error}</p> : null}
+      <div style={{ display: "grid", gap: "10px" }}>
+        {tickets.map((ticket) => (
+          <article key={ticket.id} style={{ background: "#fff", borderRadius: "8px", padding: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
+              <strong>{ticket.title || ticket.task_type}</strong>
+              <span>{ticket.priority} · {ticket.status}</span>
+            </div>
+            <p style={{ color: "#475467" }}>{ticket.description}</p>
+            <small>
+              工单 {ticket.id.slice(0, 12)} · 案件 {ticket.case_id.slice(0, 12)} · {new Date(ticket.created_at).toLocaleString("zh-CN")}
+            </small>
+          </article>
+        ))}
+        {!tickets.length && !error ? <p>暂无工单。</p> : null}
       </div>
     </div>
   );
 }
-

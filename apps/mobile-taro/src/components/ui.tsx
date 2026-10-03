@@ -1,4 +1,5 @@
-import { Text, View } from "@tarojs/components";
+import { Button, Text, View } from "@tarojs/components";
+import { useState } from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 
 export interface HeroStat {
@@ -115,6 +116,24 @@ export function SectionCard({ title, description, extra, children, tone = "defau
 
 export function Badge({ label, tone = "neutral" }: BadgeProps) {
   return <Text className={joinClassNames("badge", `badge--${tone}`)}>{label}</Text>;
+}
+
+export function Disclosure({ title, children }: PropsWithChildren<{ title: string }>) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <View className="disclosure">
+      <Button
+        className="disclosure__toggle"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((value) => !value)}
+      >
+        <Text>{title}</Text>
+        <Text className="disclosure__symbol" aria-hidden>{expanded ? "-" : "+"}</Text>
+      </Button>
+      {expanded ? <View className="disclosure__body">{children}</View> : null}
+    </View>
+  );
 }
 
 export function EmptyState({ title, description, action }: EmptyStateProps) {

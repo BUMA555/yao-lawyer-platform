@@ -1,16 +1,28 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.middleware import RequestContextMiddleware
 from app.db.init_data import seed_plans
-from app.db.session import Base, SessionLocal, engine
+from app.db.session import Base, SessionLocal, engine, run_compatibility_migrations
 from app.models import entities as _entities  # noqa: F401
 from app.services.metrics import log_event
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    run_compatibility_migrations()
+    with SessionLocal() as db:
+        seed_plans(db)
+    yield
 
 
 def create_app() -> FastAPI:
@@ -20,6 +32,7 @@ def create_app() -> FastAPI:
         debug=settings.debug,
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -31,15 +44,15 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestContextMiddleware)
     app.include_router(api_router)
 
-    @app.on_event("startup")
-    def on_startup() -> None:
-        Base.metadata.create_all(bind=engine)
-        with SessionLocal() as db:
-            seed_plans(db)
-
     @app.get("/healthz")
     def health() -> dict:
         return {"ok": True, "service": settings.app_name}
+
+    @app.get("/readyz")
+    def ready() -> dict:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+        return {"ok": True, "service": settings.app_name, "database": "ok"}
 
     @app.middleware("http")
     async def access_event_logger(request: Request, call_next):
@@ -47,6 +60,8 @@ def create_app() -> FastAPI:
         request_id = getattr(request.state, "request_id", "")
         elapsed_ms = getattr(request.state, "elapsed_ms", 0.0)
         path = request.url.path
+        if path in {"/healthz", "/readyz"}:
+            return response
         method = request.method
         try:
             with SessionLocal() as db:

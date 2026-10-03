@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.entities import ReferralBind, ReferralReward, User
+from app.services.entitlements import grant_entitlement
 
 
 def can_bind_referral(db: Session, inviter: User, invitee: User, ip_address: str) -> tuple[bool, str]:
@@ -47,7 +48,16 @@ def claim_rewards(db: Session, user: User, max_claim_count: int) -> tuple[int, i
         granted += reward.reward_value
         db.add(reward)
     if granted > 0:
-        user.paid_chat_credits += granted
-        db.add(user)
+        for reward in rewards:
+            grant_entitlement(
+                db,
+                user=user,
+                amount=reward.reward_value,
+                idempotency_key=f"referral:{reward.id}:grant:chat",
+                reason="referral.reward",
+                source_type="referral_reward",
+                source_id=str(reward.id),
+                metadata={"invitee_user_id": reward.invitee_user_id},
+            )
     db.commit()
     return claimed, granted

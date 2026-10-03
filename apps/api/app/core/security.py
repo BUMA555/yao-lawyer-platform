@@ -50,3 +50,39 @@ def verify_token(token: str) -> str:
 
     return user_id
 
+
+def sign_payment_callback(*, secret: str, channel: str, order_id: str, provider_order_id: str, paid: bool, amount_cents: int | None) -> str:
+    body = "|".join(
+        [
+            channel,
+            order_id.strip(),
+            provider_order_id.strip(),
+            "1" if paid else "0",
+            "" if amount_cents is None else str(amount_cents),
+        ]
+    )
+    return hmac.new(secret.encode("utf-8"), body.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def verify_payment_callback_signature(
+    *,
+    secret: str,
+    channel: str,
+    order_id: str,
+    provider_order_id: str,
+    paid: bool,
+    amount_cents: int | None,
+    signature: str,
+) -> None:
+    if not secret:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Callback secret not configured")
+    expected = sign_payment_callback(
+        secret=secret,
+        channel=channel,
+        order_id=order_id,
+        provider_order_id=provider_order_id,
+        paid=paid,
+        amount_cents=amount_cents,
+    )
+    if not hmac.compare_digest(expected, signature.strip()):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Callback signature invalid")

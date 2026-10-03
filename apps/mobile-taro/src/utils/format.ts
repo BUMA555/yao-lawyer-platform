@@ -134,19 +134,24 @@ function getLaneBoard(value: string) {
 
 export function buildResultBoard(report: ChatRespondPayload) {
   const laneBoard = getLaneBoard(report.lane);
+  const actualEvidenceGaps = report.evidence_gaps?.length ? report.evidence_gaps : laneBoard.evidenceGaps;
+  const actualActions = report.next_actions?.length ? report.next_actions : ["先保留现有证据原件", "先拉完整时间线", "先暂停情绪化动作"];
+  const actualNotRecommended = report.not_recommended?.length
+    ? report.not_recommended
+    : ["证据不全前不要公开定性", "程序节点不清前不要贸然起诉或报警"];
 
   return {
-    summary: laneBoard.summary,
+    summary: report.summary || report.client_version || laneBoard.summary,
     riskNote: RISK_NOTES[report.risk_level] || "先把事实链、证据链和程序节点排清，再决定走哪条路。",
-    dangerPoint: laneBoard.dangerPoint,
-    evidenceGaps: laneBoard.evidenceGaps,
-    actionPlan: report.next_actions.length
-      ? report.next_actions
-      : ["先保留现有证据原件", "先拉完整时间线", "先暂停情绪化动作"],
-    routeSuggestions: laneBoard.routeSuggestions,
-    notRecommended: report.not_recommended.length
-      ? report.not_recommended
-      : ["证据不全前不要公开定性", "程序节点不清前不要贸然起诉或报警"]
+    dangerPoint: report.urgent_flags?.[0] || report.to_verify?.[0] || laneBoard.dangerPoint,
+    evidenceGaps: actualEvidenceGaps,
+    actionPlan: actualActions,
+    routeSuggestions: report.disputed_issues?.length ? report.disputed_issues : laneBoard.routeSuggestions,
+    notRecommended: actualNotRecommended,
+    knownFacts: report.known_facts || [],
+    inferences: report.inferences || [],
+    toVerify: report.to_verify || [],
+    urgentFlags: report.urgent_flags || []
   };
 }
 
@@ -176,6 +181,7 @@ export function buildReportText(report: ChatRespondPayload | null) {
     `状态：${formatStatus(report.status)}`,
     `赛道：${formatLane(report.lane)}`,
     `风险级别：${formatRiskLevel(report.risk_level)}`,
+    `剩余算力：${typeof report.entitlement_remaining === "number" ? report.entitlement_remaining : "未同步"}`,
     "",
     "当前判断",
     board.summary,
@@ -191,6 +197,12 @@ export function buildReportText(report: ChatRespondPayload | null) {
     "",
     "当前更适合的推进路径",
     routes,
+    "",
+    "已知事实",
+    (board.knownFacts || []).map((item, index) => `${index + 1}. ${item}`).join("\n") || "暂无",
+    "",
+    "推定与待核验",
+    [...(board.inferences || []), ...(board.toVerify || [])].map((item, index) => `${index + 1}. ${item}`).join("\n") || "暂无",
     "",
     "现在先别做",
     avoidList,
@@ -218,7 +230,7 @@ export function getPlanPresentation(plan: Plan) {
     "trial-pack": {
       title: "体验算力包",
       badge: "旧方案兼容",
-      description: "兼容旧版本的体验包，当前按算力方案展示。",
+      description: "适合单次咨询。",
       featureA: "适合单次问题",
       featureB: "短期体验",
       featureC: "适合先问一轮"
@@ -226,7 +238,7 @@ export function getPlanPresentation(plan: Plan) {
     "monthly-pro": {
       title: "月度算力版",
       badge: "旧方案兼容",
-      description: "兼容旧版本的月度方案，后续会升级为 9.9 月付主方案。",
+      description: "适合持续咨询。",
       featureA: "适合持续追问",
       featureB: "含月度有效期",
       featureC: "推荐平滑迁移",
@@ -235,7 +247,7 @@ export function getPlanPresentation(plan: Plan) {
     "monthly-9-9": {
       title: "9.9 月付",
       badge: "主推入口",
-      description: "低门槛开通姚律师月度算力，适合持续追问、生成基础结果卡和复盘最近问题。",
+      description: "日常咨询与基础分析。",
       featureA: "适合普通用户常驻",
       featureB: "每月补充基础算力",
       featureC: "冷启动主推方案",
@@ -244,7 +256,7 @@ export function getPlanPresentation(plan: Plan) {
     "credit-pack-30": {
       title: "算力包 30",
       badge: "轻量补充",
-      description: "适合一次复杂问题或短期集中追问，用完再补，不改变月付状态。",
+      description: "临时追问，按需补充。",
       featureA: "适合临时追问",
       featureB: "按量补充",
       featureC: "适合试用后加量"
@@ -252,7 +264,7 @@ export function getPlanPresentation(plan: Plan) {
     "credit-pack-100": {
       title: "算力包 100",
       badge: "高频补充",
-      description: "适合连续咨询、深度分析和材料整理较多的用户。",
+      description: "高频咨询与深度分析。",
       featureA: "高峰期补量",
       featureB: "不改月付状态",
       featureC: "适合高频使用"

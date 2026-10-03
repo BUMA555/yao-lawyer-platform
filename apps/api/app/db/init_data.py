@@ -8,26 +8,26 @@ from app.models.entities import Plan
 
 DEFAULT_PLANS = [
     {
-        "code": "trial-pack",
-        "name": "体验包",
-        "description": "首购体验，低门槛试用姚律师服务",
-        "price_cents": 1990,
-        "chat_credits": 20,
-        "membership_days": 7,
-    },
-    {
-        "code": "monthly-pro",
-        "name": "月会员",
-        "description": "月度深度咨询，含优先工单升级",
-        "price_cents": 19900,
-        "chat_credits": 200,
+        "code": "monthly-9-9",
+        "name": "9.9 月付算力",
+        "description": "低门槛月付，适合持续向姚律师追问和生成基础结果卡",
+        "price_cents": 990,
+        "chat_credits": 80,
         "membership_days": 30,
     },
     {
+        "code": "credit-pack-30",
+        "name": "算力包 30",
+        "description": "临时补充算力，适合一次复杂问题或短期集中追问",
+        "price_cents": 990,
+        "chat_credits": 30,
+        "membership_days": 0,
+    },
+    {
         "code": "credit-pack-100",
-        "name": "次数包100",
-        "description": "按量补充，适合高频用户",
-        "price_cents": 6990,
+        "name": "算力包 100",
+        "description": "高频使用补充包，适合连续咨询、深度分析和材料整理",
+        "price_cents": 2990,
         "chat_credits": 100,
         "membership_days": 0,
     },
@@ -52,4 +52,3 @@ def seed_plans(db: Session) -> None:
             )
         )
     db.commit()
-

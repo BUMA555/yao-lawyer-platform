@@ -38,8 +38,20 @@ def get_current_user(
     return user
 
 
+def require_admin_token(request: Request, authorization: str | None = Header(default=None)) -> str:
+    if not settings.admin_bearer_token:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Admin token not configured")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing admin bearer token")
+    token = authorization.replace("Bearer ", "", 1).strip()
+    if token != settings.admin_bearer_token:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin token invalid")
+    if not rate_limiter.allow(f"admin:{token}"):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Admin rate limit exceeded")
+    return token
+
+
 def _enforce_rate_limit(request: Request, user: User) -> None:
     key = f"user:{user.id}"
     if not rate_limiter.allow(key):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded")
-

@@ -5,6 +5,9 @@ import prodConfig from "./prod";
 
 const envConfig = process.env.NODE_ENV === "development" ? devConfig : prodConfig;
 const isDev = process.env.NODE_ENV === "development";
+const outputRoot =
+  process.env.TARO_OUTPUT_ROOT ||
+  (process.env.TARO_ENV === "weapp" ? "dist-weapp" : "dist");
 
 export default defineConfig({
   projectName: "yao-lawyer-mobile",
@@ -17,7 +20,7 @@ export default defineConfig({
     828: 0.905
   },
   sourceRoot: "src",
-  outputRoot: "dist",
+  outputRoot,
   plugins: [],
   framework: "react",
   compiler: "webpack5",

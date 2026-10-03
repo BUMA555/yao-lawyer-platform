@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: yao-lawyer-api
+    runtime: docker
+    rootDir: apps/api
+    plan: free
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: prod
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yao-lawyer-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_BEARER_TOKEN
+        generateValue: true
+      - key: CORS_ALLOW_ORIGINS
+        value: https://ls.buma55.com
+      - key: CORS_ALLOW_METHODS
+        value: "*"
+      - key: CORS_ALLOW_HEADERS
+        value: "*"
+      - key: CORS_ALLOW_CREDENTIALS
+        value: "false"
+      - key: WECHAT_PAY_ENABLED
+        value: "false"
+      - key: PAYMENT_MOCK_ENABLED
+        value: "false"
+      - key: FREE_CHAT_QUOTA
+        value: "10"
+      - key: FREE_REPORT_QUOTA
+        value: "1"
+
+databases:
+  - name: yao-lawyer-db
+    plan: free

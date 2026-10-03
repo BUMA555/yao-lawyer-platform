@@ -2,15 +2,17 @@
 import { useState } from "react";
 
 import {
+  apiGet,
   apiPost,
   buildConsultMessageFromDraft,
+  createIdempotencyKey,
   getCaseDraft,
   getChatSessionId,
   getLastConsultResult,
   hasAuthToken,
   setLastConsultResult
 } from "../services/api";
-import type { CaseDraft, ChatRespondPayload, ChatRespondResponse } from "../types/api";
+import type { CaseDraft, ChatRespondPayload, ChatRespondResponse, ReportListResponse } from "../types/api";
 import { showErrorToast, showToast } from "../utils/feedback";
 import { buildReportText } from "../utils/format";
 
@@ -32,6 +34,19 @@ export function useReport(onRequireLogin: () => void) {
     setDraft(latestDraft);
     setMatterSummary(resolveMatterSummary(latestDraft));
     setSessionId(getChatSessionId());
+    if (hasAuthToken()) {
+      void apiGet<ReportListResponse>("/v1/reports")
+        .then((response) => {
+          const remoteReport = response.reports?.[0]?.payload;
+          if (remoteReport) {
+            setReport(remoteReport);
+            setLastConsultResult(remoteReport);
+          }
+        })
+        .catch(() => {
+          // Local cache remains usable when the API is unavailable.
+        });
+    }
   });
 
   async function refreshReport() {
@@ -56,12 +71,16 @@ export function useReport(onRequireLogin: () => void) {
     setLoading(true);
 
     try {
-      const response = await apiPost<ChatRespondResponse, { session_id: string; user_message: string; output_mode: string }>(
+      const response = await apiPost<
+        ChatRespondResponse,
+        { session_id: string; user_message: string; output_mode: string; idempotency_key: string }
+      >(
         "/v1/chat/respond",
         {
           session_id: sessionId,
           user_message: `请基于以下案件草稿生成汇报：\n${currentSummary}\n\n请按法官版、客户版、团队版和下一步动作输出。`,
-          output_mode: "report"
+          output_mode: "report",
+          idempotency_key: createIdempotencyKey("report", `${sessionId}:${currentSummary}`)
         }
       );
 

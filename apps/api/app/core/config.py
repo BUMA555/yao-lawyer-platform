@@ -29,12 +29,36 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(default="please-change-this-secret", alias="JWT_SECRET")
     jwt_expire_hours: int = Field(default=72, alias="JWT_EXPIRE_HOURS")
     sms_code_ttl_seconds: int = Field(default=300, alias="SMS_CODE_TTL_SECONDS")
+    admin_bearer_token: str = Field(default="", alias="ADMIN_BEARER_TOKEN")
 
     ai_gateway_base_url: str = Field(default="", alias="AI_GATEWAY_BASE_URL")
     ai_gateway_api_key: str = Field(default="", alias="AI_GATEWAY_API_KEY")
     ai_gateway_timeout_seconds: int = Field(default=15, alias="AI_GATEWAY_TIMEOUT_SECONDS")
-    ai_model_high: str = Field(default="gpt-4o-mini", alias="AI_MODEL_HIGH")
-    ai_model_low: str = Field(default="gpt-4o-mini", alias="AI_MODEL_LOW")
+    openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
+    openai_base_url: str = Field(default="https://api.openai.com/v1", alias="OPENAI_BASE_URL")
+    ai_model_high: str = Field(default="gpt-6.1-sol", alias="AI_MODEL_HIGH")
+    ai_model_low: str = Field(default="gpt-6-luna", alias="AI_MODEL_LOW")
+    ai_model_analysis: str = Field(default="gpt-6.1-sol", alias="AI_MODEL_ANALYSIS")
+    ai_reasoning_effort: str = Field(default="medium", alias="AI_REASONING_EFFORT")
+    ai_max_output_tokens: int = Field(default=5000, alias="AI_MAX_OUTPUT_TOKENS")
+    payment_callback_wechat_secret: str = Field(default="", alias="PAYMENT_CALLBACK_WECHAT_SECRET")
+    payment_callback_douyin_secret: str = Field(default="", alias="PAYMENT_CALLBACK_DOUYIN_SECRET")
+
+    wechat_app_id: str = Field(default="", alias="WECHAT_APP_ID")
+    wechat_app_secret: str = Field(default="", alias="WECHAT_APP_SECRET")
+    wechat_login_timeout_seconds: int = Field(default=10, alias="WECHAT_LOGIN_TIMEOUT_SECONDS")
+    wechat_pay_enabled: bool = Field(default=False, alias="WECHAT_PAY_ENABLED")
+    payment_mock_enabled: bool = Field(default=False, alias="PAYMENT_MOCK_ENABLED")
+    wechat_pay_mch_id: str = Field(default="", alias="WECHAT_PAY_MCH_ID")
+    wechat_pay_serial_no: str = Field(default="", alias="WECHAT_PAY_SERIAL_NO")
+    wechat_pay_private_key_path: str = Field(default="", alias="WECHAT_PAY_PRIVATE_KEY_PATH")
+    wechat_pay_private_key: str = Field(default="", alias="WECHAT_PAY_PRIVATE_KEY")
+    wechat_pay_api_v3_key: str = Field(default="", alias="WECHAT_PAY_API_V3_KEY")
+    wechat_pay_platform_cert_path: str = Field(default="", alias="WECHAT_PAY_PLATFORM_CERT_PATH")
+    wechat_pay_public_key_path: str = Field(default="", alias="WECHAT_PAY_PUBLIC_KEY_PATH")
+    wechat_pay_public_key_id: str = Field(default="", alias="WECHAT_PAY_PUBLIC_KEY_ID")
+    wechat_pay_notify_url: str = Field(default="", alias="WECHAT_PAY_NOTIFY_URL")
+    wechat_pay_api_base_url: str = Field(default="https://api.mch.weixin.qq.com", alias="WECHAT_PAY_API_BASE_URL")
 
     rate_limit_window_seconds: int = Field(default=60, alias="RATE_LIMIT_WINDOW_SECONDS")
     rate_limit_requests_per_window: int = Field(default=40, alias="RATE_LIMIT_REQUESTS_PER_WINDOW")
@@ -73,6 +97,7 @@ class Settings(BaseSettings):
         if url.startswith("postgresql://"):
             return f"postgresql+psycopg://{url.removeprefix('postgresql://')}"
         return url
+
     def ensure_runtime_dirs(self) -> None:
         if self.database_url.startswith("sqlite:///"):
             db_path = Path(self.database_url.replace("sqlite:///", "", 1))

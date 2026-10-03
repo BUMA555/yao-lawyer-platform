@@ -6,6 +6,7 @@ export default {
     "pages/report/index",
     "pages/report/deep/index",
     "pages/orders/index",
+    "pages/documents/index",
     "pages/profile/index"
   ],
   window: {

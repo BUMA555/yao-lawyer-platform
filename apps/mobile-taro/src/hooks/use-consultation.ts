@@ -5,6 +5,7 @@ import {
   apiPatch,
   apiPost,
   buildConsultMessageFromDraft,
+  createIdempotencyKey,
   createEmptyCaseDraft,
   getCurrentCaseId,
   getCaseDraft,
@@ -180,12 +181,16 @@ export function useConsultation({ user, onRequireLogin }: UseConsultationOptions
       const summary = preparedDraft.title || preparedDraft.facts;
       const caseId = await ensureCaseId(preparedDraft);
       const sessionId = await ensureSessionId(summary, caseId, preparedDraft.scene);
-      const response = await apiPost<ChatRespondResponse, { session_id: string; user_message: string; output_mode: string }>(
+      const response = await apiPost<
+        ChatRespondResponse,
+        { session_id: string; user_message: string; output_mode: string; idempotency_key: string }
+      >(
         "/v1/chat/respond",
         {
           session_id: sessionId,
           user_message: messageForBackend,
-          output_mode: "standard"
+          output_mode: "standard",
+          idempotency_key: createIdempotencyKey("chat", `${sessionId}:${messageForBackend}`)
         }
       );
 

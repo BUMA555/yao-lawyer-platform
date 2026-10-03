@@ -35,6 +35,7 @@ export function useProfileActions({ user, saveUser, clearUser }: UseProfileActio
   const [debugCode, setDebugCode] = useState("");
   const [sending, setSending] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [wechatLoggingIn, setWechatLoggingIn] = useState(false);
   const [quickLoggingIn, setQuickLoggingIn] = useState(false);
   const [binding, setBinding] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -101,6 +102,41 @@ export function useProfileActions({ user, saveUser, clearUser }: UseProfileActio
       showErrorToast(error);
     } finally {
       setLoggingIn(false);
+    }
+  }
+
+  async function loginWechat() {
+    if (process.env.TARO_ENV !== "weapp") {
+      showToast("请在微信小程序中使用微信登录");
+      return;
+    }
+
+    setWechatLoggingIn(true);
+
+    try {
+      const loginResult = await Taro.login();
+      if (!loginResult.code) {
+        throw new Error("微信登录凭证获取失败");
+      }
+
+      const response = await apiPost<LoginResponse, { code: string; device_fingerprint: string; nickname: string }>(
+        "/v1/auth/wechat/login",
+        {
+          code: loginResult.code,
+          device_fingerprint: "yao-lawyer-wechat",
+          nickname: "微信用户"
+        },
+        false
+      );
+
+      setAuthToken(response.token);
+      saveUser(response.user);
+      setMobile(response.user.mobile);
+      showToast("微信登录成功");
+    } catch (error) {
+      showErrorToast(error);
+    } finally {
+      setWechatLoggingIn(false);
     }
   }
 
@@ -240,6 +276,7 @@ export function useProfileActions({ user, saveUser, clearUser }: UseProfileActio
     debugCode,
     sending,
     loggingIn,
+    wechatLoggingIn,
     quickLoggingIn,
     binding,
     claiming,
@@ -249,6 +286,7 @@ export function useProfileActions({ user, saveUser, clearUser }: UseProfileActio
     setInviteCode,
     sendCode,
     login,
+    loginWechat,
     quickDevLogin,
     bindInvite,
     claimReward,

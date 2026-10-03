@@ -24,9 +24,17 @@ class LoginRequest(BaseModel):
     nickname: str = Field(default="", max_length=60)
 
 
+class WechatLoginRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=256)
+    device_fingerprint: str = Field(default="", max_length=120)
+    nickname: str = Field(default="", max_length=60)
+
+
 class LoginUser(BaseModel):
     id: str
     mobile: str
+    nickname: str = ""
+    login_provider: str = "mobile"
     invite_code: str
     free_chat_quota: int
     free_report_quota: int
@@ -38,3 +46,23 @@ class LoginResponse(ApiResponse):
     token: str
     user: LoginUser
 
+
+class MeUserSnapshot(BaseModel):
+    id: str
+    mobile: str
+    nickname: str
+    login_provider: str = "mobile"
+    device_fingerprint: str
+    referred_by_user_id: str | None
+    invite_code: str
+    free_chat_quota: int
+    free_report_quota: int
+    paid_chat_credits: int
+    membership_expires_at: datetime | None
+    is_blacklisted: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class MeResponse(ApiResponse):
+    user: MeUserSnapshot

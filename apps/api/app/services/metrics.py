@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.entities import ChatMessage, ChatSession, EscalationTicket, EventLog, Order, User
+from app.models.entities import ChatMessage, ChatSession, EntitlementLedger, EscalationTicket, EventLog, Order, ServiceTask, User
 from app.schemas.admin import AdminMetrics
 
 
@@ -21,6 +21,10 @@ def collect_admin_metrics(db: Session) -> AdminMetrics:
 
     start_day = datetime.now(UTC).replace(tzinfo=None, hour=0, minute=0, second=0, microsecond=0)
     messages_today = db.scalar(select(func.count(ChatMessage.id)).where(ChatMessage.created_at >= start_day)) or 0
+    queued_tasks = db.scalar(
+        select(func.count(ServiceTask.id)).where(ServiceTask.status.in_(("queued", "pending", "processing")))
+    ) or 0
+    entitlement_entries = db.scalar(select(func.count(EntitlementLedger.id))) or 0
 
     return AdminMetrics(
         total_users=int(total_users),
@@ -31,6 +35,8 @@ def collect_admin_metrics(db: Session) -> AdminMetrics:
         open_tickets=int(open_tickets),
         chat_sessions=int(chat_sessions),
         messages_today=int(messages_today),
+        queued_tasks=int(queued_tasks),
+        entitlement_entries=int(entitlement_entries),
     )
 
 
